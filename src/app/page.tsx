@@ -2,11 +2,10 @@
 import SignalCard from "@/components/SignalCard";
 import { Data } from "@/lib/db";
 
-// Ensure this page is always rendered dynamically (no SSG trying to call APIs at build time)
-export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic";   // don't pre-render
 
 export default async function SignalsPage() {
-  const signals = await Data.listSignals(); // pulls demo data in DEMO_MODE=true
+  const signals = await Data.listSignals(); // demo data in DEMO_MODE=true
   return (
     <div className="space-y-4">
       <div className="flex items-end justify-between">
