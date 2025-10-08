@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  riskMode  RiskMode @default(NORMAL)
+  accountSize Int    @default(1000)
+  signals   Signal[]
+}
+
+model Signal {
+  id        String   @id @default(cuid())
+  symbol    String
+  market    String   // e.g., FX, EQUITY, CRYPTO
+  direction String   // BUY or SELL
+  entry     Float
+  stop      Float
+  takeProfit Float
+  riskPct   Float    @default(1)
+  note      String?
+
+  createdAt DateTime @default(now())
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+
+  results   Result[]
+}
+
+model Result {
+  id       String   @id @default(cuid())
+  signalId String
+  status   String   // WIN | LOSS | BE
+  pnlPct   Float    @default(0)
+  createdAt DateTime @default(now())
+  signal   Signal    @relation(fields: [signalId], references: [id])
+}
+
+enum RiskMode {
+  CONSERVATIVE
+  NORMAL
+  AGGRESSIVE
+}
