@@ -1,22 +1,31 @@
-import { PrismaClient } from "@prisma/client";
+// src/lib/db.ts
 import { demoSignals } from "./demo";
 
-export const DEMO_MODE = process.env.DEMO_MODE === "true";
+// DEMO mode is default. Set DEMO_MODE=false to use Prisma.
+export const DEMO_MODE = process.env.DEMO_MODE !== "false";
 
-let prisma: PrismaClient | null = null;
+// Lazy/conditional Prisma load so builds don't break in demo mode
+let prisma: any = null;
 
-export function getPrisma() {
-  if (!prisma) prisma = new PrismaClient();
+async function getPrisma() {
+  if (DEMO_MODE) {
+    throw new Error("Prisma is disabled in DEMO_MODE.");
+  }
+  if (!prisma) {
+    // Only import when DEMO_MODE is false (prevents requiring generated client)
+    const { PrismaClient } = await import("@prisma/client");
+    prisma = new PrismaClient();
+  }
   return prisma;
 }
 
-// Unified API the rest of the app can call
 export const Data = {
   async listSignals() {
     if (DEMO_MODE) return demoSignals;
-    const db = getPrisma();
+
+    const db = await getPrisma();
     const rows = await db.signal.findMany({ orderBy: { createdAt: "desc" } });
-    return rows.map(r => ({
+    return rows.map((r: any) => ({
       id: r.id,
       symbol: r.symbol,
       market: r.market,
@@ -26,7 +35,7 @@ export const Data = {
       takeProfit: r.takeProfit,
       riskPct: r.riskPct,
       note: r.note ?? undefined,
-      createdAt: r.createdAt.toISOString()
+      createdAt: r.createdAt.toISOString(),
     }));
   },
 
@@ -41,16 +50,20 @@ export const Data = {
     note?: string;
   }) {
     if (DEMO_MODE) {
-      // In demo, we DO NOT persist; return a fake row
+      // Demo: return a fake row (no persistence)
       return {
         id: "demo-new-" + Math.random().toString(36).slice(2, 8),
         createdAt: new Date().toISOString(),
         riskPct: input.riskPct ?? 1,
-        ...input
+        ...input,
       };
     }
-    const db = getPrisma();
-    const author = await db.user.findFirst();
+
+    const db = await getPrisma();
+    const author =
+      (await db.user.findFirst()) ??
+      (await db.user.create({ data: { email: "creator@example.com" } }));
+
     const row = await db.signal.create({
       data: {
         symbol: input.symbol,
@@ -61,11 +74,10 @@ export const Data = {
         takeProfit: input.takeProfit,
         riskPct: input.riskPct ?? 1,
         note: input.note,
-        authorId: author?.id ?? (await db.user.create({
-          data: { email: "creator@example.com" }
-        })).id
-      }
+        authorId: author.id,
+      },
     });
+
     return {
       id: row.id,
       symbol: row.symbol,
@@ -76,7 +88,7 @@ export const Data = {
       takeProfit: row.takeProfit,
       riskPct: row.riskPct,
       note: row.note ?? undefined,
-      createdAt: row.createdAt.toISOString()
+      createdAt: row.createdAt.toISOString(),
     };
-  }
+  },
 };
