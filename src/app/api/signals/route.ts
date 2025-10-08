@@ -1,3 +1,7 @@
+// src/app/api/signals/route.ts
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { Data } from "@/lib/db";
@@ -15,7 +19,7 @@ const schema = z.object({
   stop: z.number(),
   takeProfit: z.number(),
   riskPct: z.number().optional(),
-  note: z.string().optional()
+  note: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
