@@ -1,17 +1,11 @@
+// src/app/signals/page.tsx
 import SignalCard from "@/components/SignalCard";
+import { Data } from "@/lib/db";
 
-async function fetchSignals() {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/api/signals`, {
-    // In Next.js 14 server components, this is fine; route is on same host
-    cache: "no-store"
-  });
-  if (!res.ok) throw new Error("Failed to load signals");
-  const data = await res.json();
-  return data.signals as any[];
-}
+export const dynamic = "force-dynamic";   // don't pre-render
 
 export default async function SignalsPage() {
-  const signals = await fetchSignals();
+  const signals = await Data.listSignals(); // demo data when DEMO_MODE=true
   return (
     <div className="space-y-4">
       <div className="flex items-end justify-between">
